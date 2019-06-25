@@ -311,9 +311,7 @@ var db *sql.DB
 
 func main() {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4",
-		os.Getenv("DB_USER"), os.Getenv("DB_PASS"),
-		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"),
-		os.Getenv("DB_DATABASE"),
+		"root", "", "localhost", "3306", "torb",
 	)
 
 	var err error
