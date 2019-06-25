@@ -199,6 +199,16 @@ func getAllEvents() ([]*Event, error) {
 		}
 		events = append(events, &event)
 	}
+	for i, v := range events {
+		event, err := getEvent(v.ID, -1)
+		if err != nil {
+			return nil, err
+		}
+		for k := range event.Sheets {
+			event.Sheets[k].Detail = nil
+		}
+		events[i] = event
+	}
 	return events, nil
 }
 
