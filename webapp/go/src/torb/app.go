@@ -500,10 +500,11 @@ func main() {
 				return err
 			}
 
-			event, err := getEvent(reservation.EventID, -1)
+			event, err := getEventSimple(reservation.EventID)
 			if err != nil {
 				return err
 			}
+
 			price := event.Sheets[sheet.Rank].Price
 			event.Sheets = nil
 			event.Total = 0
