@@ -253,32 +253,42 @@ func getSheetMap() map[int64]Sheet {
 	rows, _ := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
 	defer rows.Close()
 
-	sheets_map := map[int64]Sheet{}
+	sheetsMap := map[int64]Sheet{}
 
 	for rows.Next() {
 		var sheet Sheet
 		rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price)
-		sheets_map[sheet.ID] = sheet
+		sheetsMap[sheet.ID] = sheet
 	}
 
-	return sheets_map
+	return sheetsMap
 }
 
 func getEvent(eventID, loginUserID int64) (*Event, error) {
 	event, err := getEventSimple(eventID)
 	if err != nil {
-		log.Println("hogehoge")
 		return nil, err
 	}
 
-	sheet_map := getSheetMap()
+	rows, _ := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
+	defer rows.Close()
 
-	for _, sheet := range sheet_map {
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+	sheetsMap := map[int64]Sheet{}
+	sheets := []Sheet{}
+
+	for rows.Next() {
+		var sheet Sheet
+		rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price)
+		sheets = append(sheets, sheet)
+		sheetsMap[sheet.ID] = sheet
+	}
+
+	for i, sheet := range sheets {
+		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheets[i])
 	}
 
 	var reservations []Reservation
-	rows, err := db.Query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL", event.ID)
+	rows, err = db.Query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL", event.ID)
 	defer rows.Close()
 
 	rankCount := map[string]int64{}
@@ -288,7 +298,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
 		reservations = append(reservations, reservation)
 
-		sheet := sheet_map[reservation.SheetID]
+		sheet := sheetsMap[reservation.SheetID]
 
 		sheet.Mine = reservation.UserID == loginUserID
 		sheet.Reserved = true
