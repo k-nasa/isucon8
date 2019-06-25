@@ -264,7 +264,7 @@ func getSheetMap() map[int64]Sheet {
 	return sheetsMap
 }
 
-func getEventBySheets(eventID) (*Event, error) {
+func getEventBySheets(eventID int64) (*Event, error) {
 	event, err := getEventSimple(eventID)
 	if err != nil {
 		return nil, err
@@ -482,7 +482,7 @@ func main() {
 			return err
 		}
 
-		if user.ID != sessUserID {
+		if user.ID != sessUserID(c) {
 			return resError(c, "forbidden", 403)
 		}
 
