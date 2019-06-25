@@ -500,7 +500,7 @@ func main() {
 				return err
 			}
 
-			event, err := getEvent(reservation.EventID)
+			event, err := getEvent(reservation.EventID, -1)
 			if err != nil {
 				return err
 			}
