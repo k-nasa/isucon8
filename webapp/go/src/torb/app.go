@@ -529,6 +529,7 @@ func main() {
 			reservation.SheetNum = sheet.Num
 			reservation.Price = price
 			reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
+
 			if reservation.CanceledAt != nil {
 				reservation.CanceledAtUnix = reservation.CanceledAt.Unix()
 			}
@@ -781,7 +782,7 @@ func main() {
 		administrator := c.Get("administrator")
 		if administrator != nil {
 			var err error
-			if events, err = getEvents(true); err != nil {
+			if events, err = getAllEvents(); err != nil {
 				return err
 			}
 		}
@@ -791,6 +792,7 @@ func main() {
 			"origin":        c.Scheme() + "://" + c.Request().Host,
 		})
 	}, fillinAdministrator)
+
 	e.POST("/admin/api/actions/login", func(c echo.Context) error {
 		var params struct {
 			LoginName string `json:"login_name"`
