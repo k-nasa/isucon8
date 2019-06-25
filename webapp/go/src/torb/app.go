@@ -299,18 +299,14 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	rows, _ := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
 	defer rows.Close()
 
-	sheetsMap := map[int64]Sheet{}
+	sheetsMap := map[int64]*Sheet{}
 	sheets := []Sheet{}
 
 	for rows.Next() {
 		var sheet Sheet
 		rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price)
 		sheets = append(sheets, sheet)
-		sheetsMap[sheet.ID] = sheet
-	}
-
-	for i, sheet := range sheets {
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheets[i])
+		sheetsMap[sheet.ID] = &sheet
 	}
 
 	var reservations []Reservation
@@ -324,13 +320,11 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
 		reservations = append(reservations, reservation)
 
-		sheet := sheetsMap[reservation.SheetID]
+		sheetsMap[reservation.SheetID].Mine = reservation.UserID == loginUserID
+		sheetsMap[reservation.SheetID].Reserved = true
+		sheetsMap[reservation.SheetID].ReservedAtUnix = reservation.ReservedAt.Unix()
 
-		sheet.Mine = reservation.UserID == loginUserID
-		sheet.Reserved = true
-		sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-
-		rankCount[sheet.Rank] = rankCount[sheet.Rank] + 1
+		rankCount[sheetsMap[reservation.SheetID].Rank] = rankCount[sheetsMap[reservation.SheetID].Rank] + 1
 	}
 
 	event.Remains = 1000 - len(reservations)
@@ -338,6 +332,10 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	event.Sheets["A"].Remains = int(150 - rankCount["A"])
 	event.Sheets["B"].Remains = int(300 - rankCount["B"])
 	event.Sheets["C"].Remains = int(500 - rankCount["C"])
+
+	for _, sheet := range sheets {
+		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, sheetsMap[sheet.ID])
+	}
 
 	return event, nil
 }
