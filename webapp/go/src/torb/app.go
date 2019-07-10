@@ -2,13 +2,16 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"sort"
@@ -21,6 +24,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/middleware"
+	_ "net/http/pprof"
 )
 
 type User struct {
@@ -182,6 +186,34 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	var administrator Administrator
 	err := db.QueryRow("SELECT id, nickname FROM administrators WHERE id = ?", administratorID).Scan(&administrator.ID, &administrator.Nickname)
 	return &administrator, err
+}
+
+func getAllEvents() ([]*Event, error) {
+	rows, err := db.Query("SELECT * FROM events ORDER BY id ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []*Event
+	for rows.Next() {
+		var event Event
+		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+			return nil, err
+		}
+		events = append(events, &event)
+	}
+	for i, v := range events {
+		event, err := getEvent(v.ID, -1)
+		if err != nil {
+			return nil, err
+		}
+		for k := range event.Sheets {
+			event.Sheets[k].Detail = nil
+		}
+		events[i] = event
+	}
+	return events, nil
 }
 
 func getEvents(all bool) ([]*Event, error) {
@@ -383,6 +415,10 @@ func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Con
 var db *sql.DB
 
 func main() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:5050", nil))
+	}()
+
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4",
 		"root", "", "localhost", "3306", "torb",
 	)
@@ -496,7 +532,7 @@ func main() {
 				return err
 			}
 
-			event, err := getEvent(reservation.EventID, -1)
+			event, err := getEventSimple(reservation.EventID)
 			if err != nil {
 				return err
 			}
@@ -511,6 +547,7 @@ func main() {
 			reservation.SheetNum = sheet.Num
 			reservation.Price = price
 			reservation.ReservedAtUnix = reservation.ReservedAt.Unix()
+
 			if reservation.CanceledAt != nil {
 				reservation.CanceledAtUnix = reservation.CanceledAt.Unix()
 			}
@@ -537,7 +574,7 @@ func main() {
 			if err := rows.Scan(&eventID); err != nil {
 				return err
 			}
-			event, err := getEvent(eventID, -1)
+			event, err := getEventSimple(eventID)
 			if err != nil {
 				return err
 			}
@@ -574,9 +611,8 @@ func main() {
 		}
 
 		var passHash string
-		if err := db.QueryRow("SELECT SHA2(?, 256)", params.Password).Scan(&passHash); err != nil {
-			return err
-		}
+		result := sha256.Sum256([]byte(params.Password))
+		passHash = hex.EncodeToString(result[:])
 		if user.PassHash != passHash {
 			return resError(c, "authentication_failed", 401)
 		}
@@ -763,7 +799,7 @@ func main() {
 		administrator := c.Get("administrator")
 		if administrator != nil {
 			var err error
-			if events, err = getEvents(true); err != nil {
+			if events, err = getAllEvents(); err != nil {
 				return err
 			}
 		}
@@ -773,6 +809,7 @@ func main() {
 			"origin":        c.Scheme() + "://" + c.Request().Host,
 		})
 	}, fillinAdministrator)
+
 	e.POST("/admin/api/actions/login", func(c echo.Context) error {
 		var params struct {
 			LoginName string `json:"login_name"`
