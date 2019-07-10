@@ -987,7 +987,14 @@ func main() {
 		return renderReportCSV(c, reports)
 	}, adminLoginRequired)
 	e.GET("/admin/api/reports/sales", func(c echo.Context) error {
-		rows, err := db.Query("select r.*, s.rank as sheet_rank, s.num as sheet_num, s.price as sheet_price, e.id as event_id, e.price as event_price from reservations r inner join sheets s on s.id = r.sheet_id inner join events e on e.id = r.event_id order by reserved_at asc for update")
+		rows, err := db.Query(`
+    select r.*, s.rank , s.num , s.price , e.id , e.price
+    from reservations r
+    inner join sheets s
+      on s.id = r.sheet_id
+    inner join events e
+      on e.id = r.event_id
+    `)
 		if err != nil {
 			return err
 		}
@@ -1001,6 +1008,7 @@ func main() {
 			if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &sheet.Rank, &sheet.Num, &sheet.Price, &event.ID, &event.Price); err != nil {
 				return err
 			}
+
 			report := Report{
 				ReservationID: reservation.ID,
 				EventID:       event.ID,
