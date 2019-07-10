@@ -574,7 +574,7 @@ func main() {
 			if err := rows.Scan(&eventID); err != nil {
 				return err
 			}
-			event, err := getEvent(eventID, -1)
+			event, err := getEventSimple(eventID)
 			if err != nil {
 				return err
 			}
