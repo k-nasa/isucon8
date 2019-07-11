@@ -188,34 +188,6 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	return &administrator, err
 }
 
-func getAllEvents() ([]*Event, error) {
-	rows, err := db.Query("SELECT * FROM events ORDER BY id ASC")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var events []*Event
-	for rows.Next() {
-		var event Event
-		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
-			return nil, err
-		}
-		events = append(events, &event)
-	}
-	for i, v := range events {
-		event, err := getEvent(v.ID, -1)
-		if err != nil {
-			return nil, err
-		}
-		for k := range event.Sheets {
-			event.Sheets[k].Detail = nil
-		}
-		events[i] = event
-	}
-	return events, nil
-}
-
 func getEvents(all bool) ([]*Event, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -240,6 +212,7 @@ func getEvents(all bool) ([]*Event, error) {
 		}
 		events = append(events, &event)
 	}
+
 	for i, v := range events {
 		event, err := getEvent(v.ID, -1)
 		if err != nil {
@@ -259,25 +232,31 @@ func getEventSimple(eventID int64) (*Event, error) {
 		Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
 		return nil, err
 	}
-	event.Sheets = map[string]*Sheets{
-		"S": &Sheets{},
-		"A": &Sheets{},
-		"B": &Sheets{},
-		"C": &Sheets{},
-	}
 
-	event.Sheets["S"].Price = event.Price + 5000
-	event.Sheets["A"].Price = event.Price + 3000
-	event.Sheets["B"].Price = event.Price + 1000
-	event.Sheets["C"].Price = event.Price + 0
-
-	event.Sheets["S"].Total = 50
-	event.Sheets["A"].Total = 150
-	event.Sheets["B"].Total = 300
-	event.Sheets["C"].Total = 500
-
-	event.Total = 1000
+  // 常に必要かわからない
+  addSheetsToEvent(&event)
 	return &event, nil
+}
+
+func addSheetsToEvent(event *Event) {
+    event.Sheets = map[string]*Sheets{
+      "S": &Sheets{},
+      "A": &Sheets{},
+      "B": &Sheets{},
+      "C": &Sheets{},
+    }
+
+    event.Sheets["S"].Price = event.Price + 5000
+    event.Sheets["A"].Price = event.Price + 3000
+    event.Sheets["B"].Price = event.Price + 1000
+    event.Sheets["C"].Price = event.Price + 0
+
+    event.Sheets["S"].Total = 50
+    event.Sheets["A"].Total = 150
+    event.Sheets["B"].Total = 300
+    event.Sheets["C"].Total = 500
+
+    event.Total = 1000
 }
 
 func getEvent(eventID, loginUserID int64) (*Event, error) {
@@ -286,6 +265,12 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		return nil, err
 	}
 
+  addReservationInfoToEvent(event, loginUserID)
+
+	return event, nil
+}
+
+func addReservationInfoToEvent(event *Event, loginUserID int64) {
 	sheetRows, _ := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
 	defer sheetRows.Close()
 
@@ -300,7 +285,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	}
 
 	var reservations []Reservation
-  rows, err := db.Query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL", event.ID)
+  rows, _ := db.Query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL", event.ID)
 	defer rows.Close()
 
 	rankCount := map[string]int64{}
@@ -326,8 +311,6 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 	for _, sheet := range sheets {
 		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, sheetsMap[sheet.ID])
 	}
-
-	return event, nil
 }
 
 func sanitizeEvent(e *Event) *Event {
@@ -757,7 +740,7 @@ func main() {
 		administrator := c.Get("administrator")
 		if administrator != nil {
 			var err error
-			if events, err = getAllEvents(); err != nil {
+			if events, err = getEvents(true); err != nil {
 				return err
 			}
 		}
