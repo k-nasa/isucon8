@@ -280,48 +280,6 @@ func getEventSimple(eventID int64) (*Event, error) {
 	return &event, nil
 }
 
-func getSheetMap() map[int64]Sheet {
-	// FIXME あとからDB参照にない形に変更する
-	rows, _ := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
-	defer rows.Close()
-
-	sheetsMap := map[int64]Sheet{}
-
-	for rows.Next() {
-		var sheet Sheet
-		rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price)
-		sheetsMap[sheet.ID] = sheet
-	}
-
-	return sheetsMap
-}
-
-func getEventBySheets(eventID int64) (*Event, error) {
-	event, err := getEventSimple(eventID)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, _ := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
-	defer rows.Close()
-
-	sheetsMap := map[int64]Sheet{}
-	sheets := []Sheet{}
-
-	for rows.Next() {
-		var sheet Sheet
-		rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price)
-		sheets = append(sheets, sheet)
-		sheetsMap[sheet.ID] = sheet
-	}
-
-	for i, sheet := range sheets {
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheets[i])
-	}
-
-	return event, nil
-}
-
 func getEvent(eventID, loginUserID int64) (*Event, error) {
 	event, err := getEventSimple(eventID)
 	if err != nil {
