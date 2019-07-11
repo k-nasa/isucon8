@@ -8,3 +8,5 @@ prebench:
 
 clean_log:
 	sudo cp /dev/null /var/log/h2o/access.log
+pprof:
+	pprof /home/isucon/torb/webapp/go/torb http://localhost:5050/debug/pprof/profile
