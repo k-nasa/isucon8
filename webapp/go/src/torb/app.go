@@ -286,21 +286,21 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		return nil, err
 	}
 
-	rows, _ := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
-	defer rows.Close()
+	sheetRows, _ := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
+	defer sheetRows.Close()
 
 	sheetsMap := map[int64]*Sheet{}
 	sheets := []Sheet{}
 
-	for rows.Next() {
+	for sheetRows.Next() {
 		var sheet Sheet
-		rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price)
+		sheetRows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price)
 		sheets = append(sheets, sheet)
 		sheetsMap[sheet.ID] = &sheet
 	}
 
 	var reservations []Reservation
-	rows, err = db.Query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL", event.ID)
+  rows, err := db.Query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL", event.ID)
 	defer rows.Close()
 
 	rankCount := map[string]int64{}
