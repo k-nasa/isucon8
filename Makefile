@@ -6,5 +6,5 @@ prebench:
 	sudo systemctl restart h2o
 	sudo systemctl restart torb.go.service
 
-cloean_log:
+clean_log:
 	sudo cp /dev/null /var/log/h2o/access.log
