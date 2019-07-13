@@ -192,6 +192,52 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	return &administrator, err
 }
 
+func getEventsByIds(ids []int64) ([]*Event) {
+  eventIds := ""
+  for _, id := range ids {
+    eventIds = eventIds + strconv.Itoa(int(id)) + ","
+  }
+  eventIds = eventIds + "0"
+
+
+  rows, _ := db.Query("SELECT * FROM events WHERE id IN (" + eventIds + ")")
+  log.Println("SELECT * FROM events WHERE id IN (" + eventIds + ")")
+  defer rows.Close()
+
+  events := []*Event{}
+  for rows.Next() {
+    var event Event
+    rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price)
+
+    events = append(events, &event)
+  }
+
+  return events
+}
+
+func getEventsMapByIds(ids []int64) (map[int64]*Event) {
+  eventIds := ""
+  for _, id := range ids {
+    eventIds = eventIds + strconv.Itoa(int(id)) + ","
+  }
+  eventIds = eventIds + "0"
+
+
+  rows, _ := db.Query("SELECT * FROM events WHERE id IN (" + eventIds + ")")
+  log.Println("SELECT * FROM events WHERE id IN (" + eventIds + ")")
+  defer rows.Close()
+
+  events := map[int64]*Event{}
+  for rows.Next() {
+    var event Event
+    rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price)
+
+    events[event.ID] = &event
+  }
+
+  return events
+}
+
 func getEvents(all bool) ([]*Event, error) {
 	tx, err := db.Begin()
 	if err != nil {
