@@ -1063,7 +1063,7 @@ func main() {
 			return err
 		}
 
-		rows, err := db.Query("SELECT r.*, e.price AS event_price FROM reservations r INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
+		rows, err := db.Query("SELECT * FROM reservations WHERE event_id = ? ORDER BY reserved_at ASC FOR UPDATE", event.ID)
 		if err != nil {
 			return err
 		}
@@ -1072,7 +1072,7 @@ func main() {
 		var reports []Report
 		for rows.Next() {
 			var reservation Reservation
-			if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt, &event.Price); err != nil {
+			if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 				return err
 			}
 
