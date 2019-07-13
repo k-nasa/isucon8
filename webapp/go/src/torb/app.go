@@ -27,8 +27,8 @@ import (
 	_ "net/http/pprof"
 )
 
-var(
-  sortedSheets []Sheet
+var (
+	sortedSheets []Sheet
 )
 
 type User struct {
@@ -192,50 +192,48 @@ func getLoginAdministrator(c echo.Context) (*Administrator, error) {
 	return &administrator, err
 }
 
-func getEventsByIds(ids []int64) ([]*Event) {
-  eventIds := ""
-  for _, id := range ids {
-    eventIds = eventIds + strconv.Itoa(int(id)) + ","
-  }
-  eventIds = eventIds + "0"
+func getEventsByIds(ids []int64) []*Event {
+	eventIds := ""
+	for _, id := range ids {
+		eventIds = eventIds + strconv.Itoa(int(id)) + ","
+	}
+	eventIds = eventIds + "0"
 
+	rows, _ := db.Query("SELECT * FROM events WHERE id IN (" + eventIds + ")")
+	log.Println("SELECT * FROM events WHERE id IN (" + eventIds + ")")
+	defer rows.Close()
 
-  rows, _ := db.Query("SELECT * FROM events WHERE id IN (" + eventIds + ")")
-  log.Println("SELECT * FROM events WHERE id IN (" + eventIds + ")")
-  defer rows.Close()
+	events := []*Event{}
+	for rows.Next() {
+		var event Event
+		rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price)
 
-  events := []*Event{}
-  for rows.Next() {
-    var event Event
-    rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price)
+		events = append(events, &event)
+	}
 
-    events = append(events, &event)
-  }
-
-  return events
+	return events
 }
 
-func getEventsMapByIds(ids []int64) (map[int64]*Event) {
-  eventIds := ""
-  for _, id := range ids {
-    eventIds = eventIds + strconv.Itoa(int(id)) + ","
-  }
-  eventIds = eventIds + "0"
+func getEventsMapByIds(ids []int64) map[int64]*Event {
+	eventIds := ""
+	for _, id := range ids {
+		eventIds = eventIds + strconv.Itoa(int(id)) + ","
+	}
+	eventIds = eventIds + "0"
 
+	rows, _ := db.Query("SELECT * FROM events WHERE id IN (" + eventIds + ")")
+	log.Println("SELECT * FROM events WHERE id IN (" + eventIds + ")")
+	defer rows.Close()
 
-  rows, _ := db.Query("SELECT * FROM events WHERE id IN (" + eventIds + ")")
-  log.Println("SELECT * FROM events WHERE id IN (" + eventIds + ")")
-  defer rows.Close()
+	events := map[int64]*Event{}
+	for rows.Next() {
+		var event Event
+		rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price)
 
-  events := map[int64]*Event{}
-  for rows.Next() {
-    var event Event
-    rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price)
+		events[event.ID] = &event
+	}
 
-    events[event.ID] = &event
-  }
-
-  return events
+	return events
 }
 
 func getEvents(all bool) ([]*Event, error) {
@@ -264,15 +262,15 @@ func getEvents(all bool) ([]*Event, error) {
 	}
 
 	for i, _ := range events {
-    event := events[i]
+		event := events[i]
 
-    addSheetsToEvent(event)
-  }
+		addSheetsToEvent(event)
+	}
 
-  addReservationsToEvents(events, -1)
+	addReservationsToEvents(events, -1)
 
 	for i, _ := range events {
-    event := events[i]
+		event := events[i]
 		for k := range event.Sheets {
 			event.Sheets[k].Detail = nil
 		}
@@ -288,30 +286,30 @@ func getEventSimple(eventID int64) (*Event, error) {
 		return nil, err
 	}
 
-  // 常に必要かわからない
-  addSheetsToEvent(&event)
+	// 常に必要かわからない
+	addSheetsToEvent(&event)
 	return &event, nil
 }
 
 func addSheetsToEvent(event *Event) {
-    event.Sheets = map[string]*Sheets{
-      "S": &Sheets{},
-      "A": &Sheets{},
-      "B": &Sheets{},
-      "C": &Sheets{},
-    }
+	event.Sheets = map[string]*Sheets{
+		"S": &Sheets{},
+		"A": &Sheets{},
+		"B": &Sheets{},
+		"C": &Sheets{},
+	}
 
-    event.Sheets["S"].Price = event.Price + 5000
-    event.Sheets["A"].Price = event.Price + 3000
-    event.Sheets["B"].Price = event.Price + 1000
-    event.Sheets["C"].Price = event.Price + 0
+	event.Sheets["S"].Price = event.Price + 5000
+	event.Sheets["A"].Price = event.Price + 3000
+	event.Sheets["B"].Price = event.Price + 1000
+	event.Sheets["C"].Price = event.Price + 0
 
-    event.Sheets["S"].Total = 50
-    event.Sheets["A"].Total = 150
-    event.Sheets["B"].Total = 300
-    event.Sheets["C"].Total = 500
+	event.Sheets["S"].Total = 50
+	event.Sheets["A"].Total = 150
+	event.Sheets["B"].Total = 300
+	event.Sheets["C"].Total = 500
 
-    event.Total = 1000
+	event.Total = 1000
 }
 
 func getEvent(eventID, loginUserID int64) (*Event, error) {
@@ -320,73 +318,72 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		return nil, err
 	}
 
-  addReservationInfoToEvent(event, loginUserID)
+	addReservationInfoToEvent(event, loginUserID)
 
 	return event, nil
 }
 
-func addReservationsToEvents(events []*Event, loginUserID int64)  {
-  eventIds := ""
-  for _, e := range events {
-    eventIds = eventIds + strconv.Itoa(int(e.ID)) + ","
-  }
-  eventIds = eventIds + "0"
+func addReservationsToEvents(events []*Event, loginUserID int64) {
+	eventIds := ""
+	for _, e := range events {
+		eventIds = eventIds + strconv.Itoa(int(e.ID)) + ","
+	}
+	eventIds = eventIds + "0"
 
-
-  rows, _ := db.Query("SELECT * FROM reservations WHERE event_id IN (" + eventIds + ") AND canceled_at IS NULL")
+	rows, _ := db.Query("SELECT * FROM reservations WHERE event_id IN (" + eventIds + ") AND canceled_at IS NULL")
 	defer rows.Close()
 
-  eventReservations := map[int64][]*Reservation{}
+	eventReservations := map[int64][]*Reservation{}
 
 	for rows.Next() {
 		var reservation Reservation
-    rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
-    eventReservations[reservation.EventID] = append(eventReservations[reservation.EventID], &reservation)
-  }
+		rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
+		eventReservations[reservation.EventID] = append(eventReservations[reservation.EventID], &reservation)
+	}
 
-  for ei, _ := range events {
-    event := events[ei]
+	for ei, _ := range events {
+		event := events[ei]
 
-    rankCount := map[string]int64{}
-    sheetsMap := map[int64]*Sheet{}
-    sheets := make([]Sheet, len(sortedSheets))
-    copy(sheets, sortedSheets)
+		rankCount := map[string]int64{}
+		sheetsMap := map[int64]*Sheet{}
+		sheets := make([]Sheet, len(sortedSheets))
+		copy(sheets, sortedSheets)
 
-    for i, sheet := range sheets {
-      sheetsMap[sheet.ID] = &sheets[i]
-    }
+		for i, sheet := range sheets {
+			sheetsMap[sheet.ID] = &sheets[i]
+		}
 
-    for _, reservation := range eventReservations[event.ID]{
-      sheetsMap[reservation.SheetID].Mine = reservation.UserID == loginUserID
-      sheetsMap[reservation.SheetID].Reserved = true
-      sheetsMap[reservation.SheetID].ReservedAtUnix = reservation.ReservedAt.Unix()
+		for _, reservation := range eventReservations[event.ID] {
+			sheetsMap[reservation.SheetID].Mine = reservation.UserID == loginUserID
+			sheetsMap[reservation.SheetID].Reserved = true
+			sheetsMap[reservation.SheetID].ReservedAtUnix = reservation.ReservedAt.Unix()
 
-      rankCount[sheetsMap[reservation.SheetID].Rank] = rankCount[sheetsMap[reservation.SheetID].Rank] + 1
-    }
+			rankCount[sheetsMap[reservation.SheetID].Rank] = rankCount[sheetsMap[reservation.SheetID].Rank] + 1
+		}
 
-    events[ei].Remains = 1000 - len(eventReservations[events[ei].ID])
-    events[ei].Sheets["S"].Remains = int(50 - rankCount["S"])
-    events[ei].Sheets["A"].Remains = int(150 - rankCount["A"])
-    events[ei].Sheets["B"].Remains = int(300 - rankCount["B"])
-    events[ei].Sheets["C"].Remains = int(500 - rankCount["C"])
+		events[ei].Remains = 1000 - len(eventReservations[events[ei].ID])
+		events[ei].Sheets["S"].Remains = int(50 - rankCount["S"])
+		events[ei].Sheets["A"].Remains = int(150 - rankCount["A"])
+		events[ei].Sheets["B"].Remains = int(300 - rankCount["B"])
+		events[ei].Sheets["C"].Remains = int(500 - rankCount["C"])
 
-    for _, sheet := range sheets {
-      events[ei].Sheets[sheet.Rank].Detail = append(events[ei].Sheets[sheet.Rank].Detail, sheetsMap[sheet.ID])
-    }
-  }
+		for _, sheet := range sheets {
+			events[ei].Sheets[sheet.Rank].Detail = append(events[ei].Sheets[sheet.Rank].Detail, sheetsMap[sheet.ID])
+		}
+	}
 }
 
 func addReservationInfoToEvent(event *Event, loginUserID int64) {
 	sheetsMap := map[int64]*Sheet{}
-  sheets := make([]Sheet, len(sortedSheets))
-  copy(sheets, sortedSheets)
+	sheets := make([]Sheet, len(sortedSheets))
+	copy(sheets, sortedSheets)
 
-  for i, sheet := range sheets {
+	for i, sheet := range sheets {
 		sheetsMap[sheet.ID] = &sheets[i]
 	}
 
 	var reservations []Reservation
-  rows, _ := db.Query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL", event.ID)
+	rows, _ := db.Query("SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL", event.ID)
 	defer rows.Close()
 
 	rankCount := map[string]int64{}
@@ -415,35 +412,35 @@ func addReservationInfoToEvent(event *Event, loginUserID int64) {
 }
 
 func getSheet(id int64) Sheet {
-  if id <= 50 {
-    return Sheet {
-      ID: id,
-      Num: id,
-      Rank: "S",
-      Price: 5000,
-    }
-  } else if id <= 200 {
-    return Sheet {
-      ID: id,
-      Num: id - 50,
-      Rank: "A",
-      Price: 3000,
-    }
-  } else if id <= 500 {
-    return Sheet {
-      ID: id,
-      Num: id - 200,
-      Rank: "B",
-      Price: 1000,
-    }
-  }
+	if id <= 50 {
+		return Sheet{
+			ID:    id,
+			Num:   id,
+			Rank:  "S",
+			Price: 5000,
+		}
+	} else if id <= 200 {
+		return Sheet{
+			ID:    id,
+			Num:   id - 50,
+			Rank:  "A",
+			Price: 3000,
+		}
+	} else if id <= 500 {
+		return Sheet{
+			ID:    id,
+			Num:   id - 200,
+			Rank:  "B",
+			Price: 1000,
+		}
+	}
 
-    return Sheet {
-      ID: id,
-      Num: id - 500,
-      Rank: "C",
-      Price: 0,
-    }
+	return Sheet{
+		ID:    id,
+		Num:   id - 500,
+		Rank:  "C",
+		Price: 0,
+	}
 }
 
 func sanitizeEvent(e *Event) *Event {
@@ -473,10 +470,10 @@ func fillinAdministrator(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func validateRank(rank string) bool {
-  if rank == "S" || rank == "A" || rank == "B" || rank == "C" {
-    return true
-  }
-  return false
+	if rank == "S" || rank == "A" || rank == "B" || rank == "C" {
+		return true
+	}
+	return false
 }
 
 type Renderer struct {
@@ -540,7 +537,7 @@ func main() {
 			return nil
 		}
 
-    loadSortedSheets()
+		loadSortedSheets()
 
 		return c.NoContent(204)
 	})
@@ -602,15 +599,15 @@ func main() {
 		defer rows.Close()
 
 		var recentReservations []Reservation
-    var eventIds []int64
-    var totalPrice int64
-    totalPrice = 0
+		var eventIds []int64
+		var totalPrice int64
+		totalPrice = 0
 		for rows.Next() {
 			var reservation Reservation
 			if err := rows.Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt); err != nil {
 				return err
 			}
-      sheet := getSheet(reservation.SheetID)
+			sheet := getSheet(reservation.SheetID)
 
 			reservation.SheetRank = sheet.Rank
 			reservation.SheetNum = sheet.Num
@@ -620,15 +617,15 @@ func main() {
 				reservation.CanceledAtUnix = reservation.CanceledAt.Unix()
 			}
 			recentReservations = append(recentReservations, reservation)
-      eventIds = append(eventIds, reservation.EventID)
+			eventIds = append(eventIds, reservation.EventID)
 		}
 
-    eventsMap := getEventsMapByIds(eventIds)
-    for i, reservation := range recentReservations {
-      event := eventsMap[reservation.EventID]
-      sheet := getSheet(reservation.SheetID)
+		eventsMap := getEventsMapByIds(eventIds)
+		for i, reservation := range recentReservations {
+			event := eventsMap[reservation.EventID]
+			sheet := getSheet(reservation.SheetID)
 
-      addSheetsToEvent(event)
+			addSheetsToEvent(event)
 			price := event.Sheets[sheet.Rank].Price
 			event.Sheets = nil
 			event.Total = 0
@@ -636,9 +633,8 @@ func main() {
 
 			recentReservations[i].Event = event
 			recentReservations[i].Price = price
-      totalPrice = totalPrice + event.Price + sheet.Price
-    }
-
+			totalPrice = totalPrice + event.Price + sheet.Price
+		}
 
 		if recentReservations == nil {
 			recentReservations = make([]Reservation, 0)
@@ -650,24 +646,24 @@ func main() {
 		}
 		defer rows.Close()
 
-    eventIds = []int64{}
+		eventIds = []int64{}
 
 		for rows.Next() {
 			var eventID int64
 			if err := rows.Scan(&eventID); err != nil {
 				return err
 			}
-    }
+		}
 
-    recentEvents := getEventsByIds(eventIds)
+		recentEvents := getEventsByIds(eventIds)
 
-    for i, _ := range recentEvents {
+		for i, _ := range recentEvents {
 			event := recentEvents[i]
 
 			for k := range event.Sheets {
 				event.Sheets[k].Detail = nil
 			}
-    }
+		}
 
 		if recentEvents == nil {
 			recentEvents = make([]*Event, 0)
@@ -862,9 +858,9 @@ func main() {
 			return resError(c, "not_permitted", 403)
 		}
 
-    // ここでデッドロックしている
+		// ここでデッドロックしている
 		if _, err := db.Exec("UPDATE reservations SET canceled_at = ? WHERE id = ?", time.Now().UTC().Format("2006-01-02 15:04:05.000000"), reservation.ID); err != nil {
-      log.Println("error by update")
+			log.Println("error by update")
 			return err
 		}
 
@@ -1046,7 +1042,7 @@ func main() {
 				return err
 			}
 
-      sheet := getSheet(reservation.SheetID)
+			sheet := getSheet(reservation.SheetID)
 
 			report := Report{
 				ReservationID: reservation.ID,
@@ -1084,7 +1080,7 @@ func main() {
 				return err
 			}
 
-      sheet := getSheet(reservation.SheetID)
+			sheet := getSheet(reservation.SheetID)
 
 			report := Report{
 				ReservationID: reservation.ID,
@@ -1153,5 +1149,5 @@ func loadSortedSheets() {
 		sheetRows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price)
 		sheets = append(sheets, sheet)
 	}
-  sortedSheets = sheets
+	sortedSheets = sheets
 }
