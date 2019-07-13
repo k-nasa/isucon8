@@ -11,7 +11,7 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"net/http"
+	// "net/http"
 	"os"
 	"os/exec"
 	"sort"
@@ -24,7 +24,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/middleware"
-	_ "net/http/pprof"
+	// _ "net/http/pprof"
 )
 
 var (
@@ -534,9 +534,9 @@ func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Con
 var db *sql.DB
 
 func main() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:5050", nil))
-	}()
+	// go func() {
+	// 	log.Println(http.ListenAndServe("localhost:5050", nil))
+	// }()
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4",
 		"root", "", "localhost", "3306", "torb",
