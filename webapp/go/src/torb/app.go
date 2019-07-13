@@ -236,6 +236,39 @@ func getEventsMapByIds(ids []int64) map[int64]*Event {
 	return events
 }
 
+func getEventsSimple(all bool) ([]*Event, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit()
+
+	rows, err := tx.Query("SELECT * FROM events ORDER BY id ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []*Event
+	for rows.Next() {
+		var event Event
+		if err := rows.Scan(&event.ID, &event.Title, &event.PublicFg, &event.ClosedFg, &event.Price); err != nil {
+			return nil, err
+		}
+		if !all && !event.PublicFg {
+			continue
+		}
+		events = append(events, &event)
+	}
+
+	for i, _ := range events {
+		event := events[i]
+
+		addSheetsToEvent(event)
+	}
+	return events, nil
+}
+
 func getEvents(all bool) ([]*Event, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -500,6 +533,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	loadSortedSheets()
 
 	e := echo.New()
 	funcs := template.FuncMap{
@@ -711,7 +745,7 @@ func main() {
 		return c.NoContent(204)
 	}, loginRequired)
 	e.GET("/api/events", func(c echo.Context) error {
-		events, err := getEvents(true)
+		events, err := getEventsSimple(true)
 		if err != nil {
 			return err
 		}
@@ -917,7 +951,7 @@ func main() {
 		return c.NoContent(204)
 	}, adminLoginRequired)
 	e.GET("/admin/api/events", func(c echo.Context) error {
-		events, err := getEvents(true)
+		events, err := getEventsSimple(true)
 		if err != nil {
 			return err
 		}
