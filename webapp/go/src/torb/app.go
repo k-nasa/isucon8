@@ -27,6 +27,10 @@ import (
 	_ "net/http/pprof"
 )
 
+var(
+  sortedSheets []Sheet
+)
+
 type User struct {
 	ID        int64  `json:"id,omitempty"`
 	Nickname  string `json:"nickname,omitempty"`
@@ -439,6 +443,8 @@ func main() {
 		if err != nil {
 			return nil
 		}
+
+    loadSortedSheets()
 
 		return c.NoContent(204)
 	})
